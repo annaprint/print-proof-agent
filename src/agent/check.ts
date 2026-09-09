@@ -62,7 +62,12 @@ export async function runCheck(orderId: number): Promise<void> {
       const llmEdits = await runLlmPass(text, order.documentRevision, profile, (m) => usages.push(extractUsage(m)));
       const tLlm = Date.now() - t1;
 
-      const resolved = resolveEdits([...ruleEdits, ...llmEdits]);
+      // после clearUndecidedEdits в БД остались только уже решённые менеджером правки —
+      // их участки текста заблокированы для новых кандидатов (см. resolver.ts)
+      const lockedSpans = q.listEdits(orderId)
+        .filter((e) => e.decision !== 'pending')
+        .map((e) => ({ spanStart: e.spanStart, spanEnd: e.spanEnd }));
+      const resolved = resolveEdits([...ruleEdits, ...llmEdits], lockedSpans);
       q.insertEdits(orderId, resolved);
 
       // авто-принятие безопасных правок (opt-in профиля); менеджер может отменить до экспорта

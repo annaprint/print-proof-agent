@@ -54,4 +54,20 @@ describe('resolver: дедуп и конфликты', () => {
     // порядок в списке — по положению в документе; severity не ломает порядок
     expect(out[0].spanStart).toBe(10);
   });
+
+  it('при перепроверке не предлагает новую правку поверх уже решённого менеджером участка (баг: пересечение accepted-правок при экспорте)', () => {
+    // #22 уже принят менеджером в прошлом прогоне; recheck нашёл на том же span другую правку —
+    // без locked-spans она войдёт как новый кандидат и рано или поздно тоже будет принята
+    const locked = [{ spanStart: 605, spanEnd: 686 }];
+    const rechecked = mk({ spanStart: 605, spanEnd: 686, suggested: 'другой вариант' });
+    const out = resolveEdits([rechecked], locked);
+    expect(out).toHaveLength(0);
+  });
+
+  it('locked-spans не трогают кандидатов вне пересечения', () => {
+    const locked = [{ spanStart: 605, spanEnd: 686 }];
+    const untouched = mk({ spanStart: 700, spanEnd: 710 });
+    const out = resolveEdits([untouched], locked);
+    expect(out).toHaveLength(1);
+  });
 });

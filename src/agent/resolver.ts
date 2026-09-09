@@ -10,7 +10,12 @@ const SOURCE_PRIORITY: Record<string, number> = {
   'vision-pass': 1,
 };
 
-function overlaps(a: EditCandidate, b: EditCandidate): boolean {
+interface Span {
+  spanStart: number;
+  spanEnd: number;
+}
+
+function overlaps(a: Span, b: Span): boolean {
   return a.spanStart < b.spanEnd && b.spanStart < a.spanEnd;
 }
 
@@ -19,11 +24,16 @@ function better(a: EditCandidate, b: EditCandidate): EditCandidate {
   return (SOURCE_PRIORITY[a.sourceModule] ?? 0) >= (SOURCE_PRIORITY[b.sourceModule] ?? 0) ? a : b;
 }
 
-export function resolveEdits(candidates: EditCandidate[]): EditCandidate[] {
+// lockedSpans — участки текста, где решение менеджера уже принято в прошлом прогоне
+// (accepted/rejected правки, пережившие clearUndecidedEdits при recheck). Новый кандидат
+// каскада на таком участке отбрасывается — иначе он может быть тоже принят и пересечься
+// с уже принятой правкой (см. защиту в export.ts).
+export function resolveEdits(candidates: EditCandidate[], lockedSpans: Span[] = []): EditCandidate[] {
   const sorted = [...candidates].sort((a, b) => a.spanStart - b.spanStart || a.spanEnd - b.spanEnd);
   const out: EditCandidate[] = [];
 
   for (const cand of sorted) {
+    if (lockedSpans.some((locked) => overlaps(locked, cand))) continue;
     const clashIdx = out.findIndex((kept) => overlaps(kept, cand));
     if (clashIdx === -1) {
       out.push(cand);

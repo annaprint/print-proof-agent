@@ -2,6 +2,7 @@ import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
 import type { Edit, Estimate, LayoutIssue, Order, ProfileRules } from '@/lib/types';
+import { findAcceptedClash } from '@/lib/decide-guard';
 
 const DATA_DIR = path.join(process.cwd(), 'data');
 fs.mkdirSync(path.join(DATA_DIR, 'uploads'), { recursive: true });
@@ -209,6 +210,17 @@ export const q = {
     );
   },
   decideEdit(editId: number, decision: 'accepted' | 'rejected' | 'pending', decidedBy: string) {
+    if (decision === 'accepted') {
+      const edit = this.getEdit(editId);
+      if (edit) {
+        const clash = findAcceptedClash(edit, this.listEdits(edit.orderId));
+        if (clash) {
+          throw new Error(
+            `Правка #${editId} пересекается с уже принятой правкой #${clash.id} на этом участке текста — сначала отмените решение по ней`,
+          );
+        }
+      }
+    }
     db.prepare("UPDATE edits SET decision = ?, decided_at = datetime('now'), decided_by = ? WHERE id = ?").run(decision, decidedBy, editId);
   },
   decideCategory(orderId: number, category: string, decision: 'accepted' | 'rejected', decidedBy: string) {

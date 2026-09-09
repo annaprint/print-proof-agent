@@ -9,3 +9,13 @@ export function editBelongsToOrder(edit: Edit | undefined | null, orderId: numbe
 export function layoutIssueBelongsToOrder(issue: LayoutIssue | undefined | null, orderId: number): boolean {
   return !!issue && issue.orderId === orderId;
 }
+
+// Защита приёмки: нельзя принять правку, чей span пересекается с уже принятой
+// правкой того же заказа — иначе на экспорте всплывёт "правки пересекаются"
+// (см. export.ts). Ловит случай, когда менеджер вручную повторно принимает
+// старую/отклонённую правку, не зная, что участок текста уже решён другой.
+export function findAcceptedClash(edit: Edit, otherEdits: Edit[]): Edit | undefined {
+  return otherEdits.find(
+    (o) => o.id !== edit.id && o.decision === 'accepted' && o.spanStart < edit.spanEnd && edit.spanStart < o.spanEnd,
+  );
+}

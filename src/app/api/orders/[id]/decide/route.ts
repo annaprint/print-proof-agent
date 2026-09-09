@@ -40,7 +40,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   if (body.layoutIssueId) {
     q.decideLayoutIssue(Number(body.layoutIssueId), decision as 'accepted' | 'rejected');
   } else if (body.editId) {
-    q.decideEdit(Number(body.editId), decision, MANAGER);
+    try {
+      q.decideEdit(Number(body.editId), decision, MANAGER);
+    } catch (e: any) {
+      return NextResponse.json({ error: String(e?.message ?? e) }, { status: 409 });
+    }
   } else if (body.category) {
     q.decideCategory(orderId, String(body.category), decision as 'accepted' | 'rejected', MANAGER);
   } else if (body.all) {

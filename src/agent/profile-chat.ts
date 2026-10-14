@@ -124,7 +124,7 @@ export async function runProfileChat(transcript: string, events: ProfileChatEven
     prompt: transcript,
     options: {
       systemPrompt: SYSTEM,
-      model: 'claude-opus-4-8',
+      model: 'claude-opus-5-5',
       mcpServers: { profiles: server },
       allowedTools: [
         'mcp__profiles__list_profiles',

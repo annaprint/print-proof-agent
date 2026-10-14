@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "@ai-sdk/react": "^3.0.199",
-    "@anthropic-ai/claude-agent-sdk": "^0.1.0",
+    "@anthropic-ai/claude-agent-sdk": "^0.3.299",
     "ai": "^6.0.197",
     "better-sqlite3": "^11.0.0",
     "docx": "^9.0.0",

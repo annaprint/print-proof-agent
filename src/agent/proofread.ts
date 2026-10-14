@@ -54,7 +54,8 @@ export async function runLlmPass(
     prompt,
     options: {
       systemPrompt: SYSTEM,
-      model: 'claude-opus-4-8',
+      model: 'claude-opus-5-5',
+      effort: 'max', // максимальная глубина вычитки
       tools: [], // чистая текстовая задача — инструменты не нужны
       maxTurns: 1,
       env: cleanEnv(),

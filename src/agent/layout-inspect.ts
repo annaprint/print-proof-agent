@@ -29,7 +29,8 @@ export async function runVisionPass(
     prompt: `Проверь макет: ${imagePath}`,
     options: {
       systemPrompt: SYSTEM,
-      model: 'claude-opus-4-8',
+      model: 'claude-opus-5-5',
+      effort: 'max', // максимальная глубина вычитки
       tools: ['Read'],
       allowedTools: ['Read'],
       maxTurns: 3,

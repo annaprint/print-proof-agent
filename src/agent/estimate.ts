@@ -9,10 +9,10 @@ const LAYOUT_BASE_EUR = 0.8; // vision-проверка одной страни�
 const SECONDS_PER_1000_CHARS = 90;
 const LAYOUT_SECONDS = 120;
 
-// Модель и цены (claude-opus-4-8, USD за миллион токенов; источник: справочник Claude API)
-const MODEL = 'claude-opus-4-8';
-const USD_PER_MTOK_IN = 5;
-const USD_PER_MTOK_OUT = 25;
+// Модель и цены (claude-opus-5-5, USD за миллион токенов; источник: справочник Claude API)
+const MODEL = 'claude-opus-5-5';
+const USD_PER_MTOK_IN = 4;
+const USD_PER_MTOK_OUT = 20;
 const USD_TO_EUR = 0.92;
 
 // Эмпирика токенов: русский текст ≈ 1 токен на ~3 символа; системный промпт корректора ≈ 800;

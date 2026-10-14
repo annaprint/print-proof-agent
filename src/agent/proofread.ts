@@ -2,6 +2,7 @@
 // LLM возвращает фрагменты + контекст, span-координаты вычисляет код (LLM ненадёжна в арифметике offsets).
 import { query } from '@anthropic-ai/claude-agent-sdk';
 import type { EditCandidate, ProfileRules } from '@/lib/types';
+import { narrowTruncatedSuggestion } from '@/lib/truncated-suggestion';
 
 interface LlmEdit {
   original: string;
@@ -16,6 +17,7 @@ interface LlmEdit {
 const SYSTEM = `Ты — корректор русского языка в типографии. Найди ошибки в тексте: орфография (category=spelling), пунктуация (category=punctuation), стилистика (category=style).
 НЕ трогай типографику (кавычки, тире, пробелы) — её правит отдельный модуль.
 НЕ меняй смысл текста. severity=important — только если ошибка недопустима в печати (наращения числительных, грубые ошибки в заголовках).
+original — минимальный фрагмент с ошибкой (слово или несколько слов), suggested — ПОЛНАЯ замена всего original: всё, что есть в original и не исправляется, повтори в suggested без изменений.
 Ответь ТОЛЬКО валидным JSON-массивом объектов:
 [{"original": "точный фрагмент с ошибкой", "suggested": "исправление", "context_before": "10-20 символов текста прямо перед фрагментом", "category": "spelling|punctuation|style", "severity": "normal|important", "confidence": 0.0-1.0, "reason": "краткое обоснование по-русски"}]
 Если ошибок нет — верни []. Никакого текста вне JSON.`;
@@ -103,12 +105,18 @@ export function parseAndLocate(raw: string, baseText: string, baseRevision: numb
     if (start === -1) start = baseText.indexOf(it.original);
     if (start === -1) continue; // LLM сослалась на несуществующий фрагмент — отбрасываем
 
-    const end = start + it.original.length;
+    let end = start + it.original.length;
+    // обрезанная замена («фраза» → «слово») стёрла бы часть текста — сужаем span
+    const narrowed = narrowTruncatedSuggestion(it.original, it.suggested);
+    if (narrowed) {
+      end = start + narrowed.end;
+      start += narrowed.start;
+    }
     out.push({
       spanStart: start,
       spanEnd: end,
       baseRevision,
-      original: it.original,
+      original: baseText.slice(start, end),
       suggested: it.suggested,
       contextBefore: baseText.slice(Math.max(0, start - 30), start),
       contextAfter: baseText.slice(end, end + 30),

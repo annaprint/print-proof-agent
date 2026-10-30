@@ -20,6 +20,7 @@ interface OrderRow {
   createdAt: string;
   error?: string | null;
   clientProfileId?: number | null;
+  progress?: { done: number; total: number };
 }
 
 interface ProfileOption { id: number; name: string }
@@ -212,6 +213,7 @@ export default function OrdersPage() {
             return true;
           }).map((o) => {
             const s = STATUS_LABEL[o.status] ?? { text: o.status, cls: '' };
+            const statusText = o.progress ? `${s.text} ${o.progress.done}/${o.progress.total}` : s.text;
             return (
               <tr key={o.id}>
                 <td>
@@ -248,7 +250,7 @@ export default function OrdersPage() {
                   ) : '—'}
                 </td>
                 <td>
-                  <span className={`mono ${s.cls}`} style={{ fontSize: '0.85rem' }}>{s.text}</span>
+                  <span className={`mono ${s.cls}`} style={{ fontSize: '0.85rem' }}>{statusText}</span>
                   {(() => {
                     // SLA: укладываемся ли в обещанную оценку времени
                     const sla = slaStatus({ status: o.status, createdAt: o.createdAt, etaMinutes: o.estimate?.etaMinutes }, new Date());

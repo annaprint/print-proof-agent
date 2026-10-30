@@ -14,7 +14,12 @@ export async function GET() {
   // ACL: клиент видит только свои заказы; дизайнер — только заказы с заданиями по макету
   if (me.role === 'client') orders = orders.filter((o) => o.clientProfileId === me.clientProfileId);
   if (me.role === 'designer') orders = orders.filter((o) => q.listLayoutIssues(o.id!).length > 0);
-  return NextResponse.json(orders);
+  // прогресс llm-pass по частям — только для идущих проверок
+  return NextResponse.json(orders.map((o) => {
+    if (o.status !== 'checking') return o;
+    const p = q.getArtifact(o.id!, 'llm_progress')?.content;
+    return p ? { ...o, progress: JSON.parse(p) } : o;
+  }));
 }
 
 export async function POST(req: NextRequest) {

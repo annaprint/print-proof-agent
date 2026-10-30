@@ -1,8 +1,11 @@
-// LLM-pass: один вызов Agent SDK → структурированный список правок.
+// LLM-pass: текст делится на части, по вызову Agent SDK на часть → структурированный список правок.
 // LLM возвращает фрагменты + контекст, span-координаты вычисляет код (LLM ненадёжна в арифметике offsets).
 import { query } from '@anthropic-ai/claude-agent-sdk';
 import type { EditCandidate, ProfileRules } from '@/lib/types';
 import { narrowTruncatedSuggestion } from '@/lib/truncated-suggestion';
+import { chunkText, shiftToBase } from '@/lib/chunk-text';
+
+const LLM_CONCURRENCY = 3;
 
 interface LlmEdit {
   original: string;
@@ -34,6 +37,7 @@ export async function runLlmPass(
   baseRevision: number,
   profile?: { name: string; rules: ProfileRules },
   onResult?: (resultMessage: unknown) => void, // фактический расход — наружу для протокола
+  onProgress?: (done: number, total: number) => void,
 ): Promise<EditCandidate[]> {
   const style = profile?.rules.stylePrompt ? `\nСтилевые указания клиента: ${profile.rules.stylePrompt}` : '';
   const examples = profile?.rules.examples?.length
@@ -46,6 +50,44 @@ export async function runLlmPass(
     ? `\nПрофиль клиента «${profile.name}»: ${profile.rules.enforceYo ? 'буква ё обязательна (е→ё где нужно — category=spelling); ' : ''}${profile.rules.brandDictionary && Object.keys(profile.rules.brandDictionary).length ? 'словарь брендов учитывает отдельный модуль.' : ''}${style}${examples}`
     : '';
 
+  const chunks = chunkText(text);
+  const results: EditCandidate[][] = new Array(chunks.length);
+  let next = 0;
+  let done = 0;
+  let failed = false;
+  onProgress?.(0, chunks.length);
+
+  // несколько частей параллельно; ошибка любой части (после повтора) валит весь pass — fail-closed
+  const worker = async () => {
+    while (!failed && next < chunks.length) {
+      const i = next++;
+      const chunk = chunks[i];
+      let located: EditCandidate[] | undefined;
+      for (let attempt = 1; !located; attempt++) {
+        try {
+          located = await proofreadChunk(chunk.text, profileNote, baseRevision, onResult);
+        } catch (err) {
+          if (attempt >= 2) {
+            failed = true;
+            throw new Error(`часть ${i + 1}/${chunks.length}: ${(err as Error).message}`);
+          }
+          console.error(`[llm-pass] часть ${i + 1}/${chunks.length} упала, повтор:`, (err as Error).message);
+        }
+      }
+      results[i] = shiftToBase(located, chunk.start, text);
+      onProgress?.(++done, chunks.length);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(LLM_CONCURRENCY, chunks.length) }, worker));
+  return results.flat();
+}
+
+async function proofreadChunk(
+  text: string,
+  profileNote: string,
+  baseRevision: number,
+  onResult?: (resultMessage: unknown) => void,
+): Promise<EditCandidate[]> {
   const prompt = `${profileNote}\nТекст для корректуры (между маркерами):\n<<<НАЧАЛО>>>\n${text}\n<<<КОНЕЦ>>>`;
 
   let raw = '';

@@ -59,7 +59,13 @@ export async function runCheck(orderId: number): Promise<void> {
       const tRule = Date.now() - t0;
 
       const t1 = Date.now();
-      const llmEdits = await runLlmPass(text, order.documentRevision, profile, (m) => usages.push(extractUsage(m)));
+      const llmEdits = await runLlmPass(
+        text,
+        order.documentRevision,
+        profile,
+        (m) => usages.push(extractUsage(m)),
+        (done, total) => q.saveArtifact(orderId, 'llm_progress', { content: JSON.stringify({ done, total }) }),
+      );
       const tLlm = Date.now() - t1;
 
       // после clearUndecidedEdits в БД остались только уже решённые менеджером правки —

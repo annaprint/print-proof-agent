@@ -560,6 +560,14 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
             <Tip tip={<><div>все правки в CSV (Excel)</div><div className="dim">включая решения и provenance; доступно в любой момент</div></>}>
               <a className="act" href={`/api/orders/${id}/edits.csv`}>CSV</a>
             </Tip>
+            <Tip tip={<><div>список правок для дизайнера (CSV)</div><div className="dim">со страницами и контекстом, без отклонённых; доступен в любой момент</div></>}>
+              <a className="act" href={`/api/orders/${id}/designer-edits`}>Правки для дизайнера</a>
+            </Tip>
+            {order.type === 'pdf' && (
+              <Tip tip={<><div>PDF книги с подсвеченными правками</div><div className="dim">цвет по типу, в комментарии «было → стало»; без отклонённых и без замен е→ё</div></>}>
+                <a className="act" href={`/api/orders/${id}/highlighted-pdf`}>PDF с подсветкой</a>
+              </Tip>
+            )}
             <Tip tip={<><div>полный архив заказа (JSON)</div><div className="dim">текст, правки, протокол, профиль — для долговременного хранения</div></>}>
               <a className="act" href={`/api/orders/${id}/archive`}>Архив</a>
             </Tip>

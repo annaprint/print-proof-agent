@@ -4,7 +4,7 @@ import type { Edit } from '@/lib/types';
 const SEP = ';';
 const HEADER = ['original', 'suggested', 'category', 'severity', 'confidence', 'source', 'decision', 'decided_by', 'reason'];
 
-function cell(v: string | number): string {
+export function cell(v: string | number): string {
   const s = String(v ?? '');
   return /[";\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }

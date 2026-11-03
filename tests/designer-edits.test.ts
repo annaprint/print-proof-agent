@@ -31,6 +31,21 @@ describe('buildPageLookup: номер страницы по смещению в 
   });
 });
 
+describe('designerEditsCsv: без замен на ё', () => {
+  it('нет ё в колонке «Стало» и нет чистых замен е→ё', () => {
+    const csv = designerEditsCsv(
+      [
+        { spanStart: 0, spanEnd: 4, original: 'ушел', suggested: 'ушёл', reason: 'Профиль клиента: буква ё обязательна', category: 'spelling', severity: 'normal', decision: 'pending', contextBefore: '', contextAfter: '' } as any,
+        { spanStart: 5, spanEnd: 20, original: 'Разведчик сапер', suggested: 'Разведчик-сапёр', reason: 'Нужен дефис', category: 'spelling', severity: 'normal', decision: 'pending', contextBefore: '', contextAfter: '' } as any,
+      ],
+      'ушел Разведчик сапер',
+    );
+    expect(csv).not.toContain('ушёл');
+    expect(csv).toContain('Разведчик-сапер');
+    expect(csv).not.toContain('Разведчик-сапёр');
+  });
+});
+
 describe('designerEditsCsv: список правок для ручного внесения', () => {
   const second = TEXT.indexOf('страница', TEXT.indexOf('Вторая'));
   const first = TEXT.indexOf('страница');

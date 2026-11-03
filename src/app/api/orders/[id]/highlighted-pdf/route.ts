@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import fs from 'fs';
 import { q } from '@/lib/db';
 import { highlightPdf } from '@/agent/pdf-highlight';
-import { isYoEdit } from '@/lib/yo-edit';
+import { withoutYo } from '@/lib/yo-edit';
 import { getCurrentUser, can, forbidden, unauthorized } from '@/lib/auth';
 
 // Исходный PDF с подсветкой мест правок (без отклонённых менеджером и без замен е→ё) — для дизайнера.
@@ -21,7 +21,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   if (!source?.path || !fs.existsSync(source.path)) return NextResponse.json({ error: 'исходник не найден' }, { status: 404 });
 
   const baseText = q.getArtifact(orderId, 'parsed_text')?.content ?? '';
-  const { pdf, highlighted, unmatched } = await highlightPdf(fs.readFileSync(source.path), q.listEdits(orderId).filter((e) => !isYoEdit(e.original, e.suggested)), baseText);
+  const { pdf, highlighted, unmatched } = await highlightPdf(fs.readFileSync(source.path), withoutYo(q.listEdits(orderId)), baseText);
   return new NextResponse(new Uint8Array(pdf), {
     headers: {
       'Content-Type': 'application/pdf',

@@ -3,6 +3,7 @@
 // ставит после текста каждой страницы; для текста без маркеров страница пустая.
 import type { Edit } from './types';
 import { cell } from './csv-export';
+import { withoutYo } from './yo-edit';
 
 const SEP = ';';
 const HEADER = ['Стр.', 'Было', 'Стало', 'Контекст', 'Тип', 'Важность', 'Статус', 'Пояснение'];
@@ -31,8 +32,7 @@ export function buildPageLookup(text: string): (offset: number) => number | null
 
 export function designerEditsCsv(edits: Edit[], baseText: string): string {
   const pageOf = buildPageLookup(baseText);
-  const rows = edits
-    .filter((e) => e.decision !== 'rejected')
+  const rows = withoutYo(edits.filter((e) => e.decision !== 'rejected'))
     .map((e) => ({ e, page: pageOf(e.spanStart) }))
     .sort((a, b) => (a.page ?? Infinity) - (b.page ?? Infinity) || a.e.spanStart - b.e.spanStart)
     .map(({ e, page }) =>
